@@ -451,12 +451,15 @@ MonoBehaviour:
   _maxMoveSpeed: 8
   _linearDrag: 10
   _jumpForce: 12
-  _airLinearDrag: 0
+  _airLinearDrag: 15
   _fallMultiplier: 8
   _lowJumpFallMultiplier: 5
   _extraJumps: 1
   _groundRaycastLength: 0.7
   _groundRaycastOffset: {x: 0.45, y: 0, z: 0}
+  _knockbackForce: 50
+  _bullet: 1
+  _knockbackTime: 0.5
 --- !u!61 &2098572240
 BoxCollider2D:
   m_ObjectHideFlags: 0

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEditor.SearchService;
 using UnityEngine;
 
@@ -21,7 +22,7 @@ public class MovementScript : MonoBehaviour
 
     [Header("Jump Variables")]
     [SerializeField] private float _jumpForce = 12f;
-    [SerializeField] private float _airLinearDrag;
+    [SerializeField] private float _airLinearDrag = 10f;
     [SerializeField] private float _fallMultiplier = 8f;
     [SerializeField] private float _lowJumpFallMultiplier = 5f;
     [SerializeField] private int _extraJumps = 1;
@@ -32,6 +33,15 @@ public class MovementScript : MonoBehaviour
     [SerializeField] private float _groundRaycastLength;
     private bool _onGround;
     [SerializeField] private Vector3 _groundRaycastOffset;
+
+    [Header("Shooting Knockback Variables")]
+    [SerializeField] private float _knockbackForce;
+    [SerializeField] private int _bullet;
+    
+    private bool _canKnockback => (_bullet == 1 && Input.GetMouseButtonDown(0));
+    private bool _isKnockback = false;
+    [SerializeField] private float _knockbackTime = 0.5f;
+
 
 
 
@@ -44,6 +54,25 @@ public class MovementScript : MonoBehaviour
     private Vector2 GetInput()
     {
         return new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
+    }
+
+    private Vector2 AngleOfKnockback(Vector3 knockbackVector)
+    {
+        float angle = Mathf.Atan2(knockbackVector.y, knockbackVector.x);
+        return new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+    }
+
+    private void ShootGun()
+    {
+        Debug.Log(_bullet);
+        _bullet--;
+        if (_bullet <= 0) {
+            Vector3 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition) - transform.position;
+            _rb.AddForce(-AngleOfKnockback(mousePosition) * _knockbackForce, ForceMode2D.Impulse);
+            StartCoroutine(KnockbackStunTime(_knockbackTime));
+        }
+        
+        
     }
 
     private void MoveCharacter()
@@ -91,6 +120,7 @@ public class MovementScript : MonoBehaviour
         Gizmos.color = Color.green;
         Gizmos.DrawLine(transform.position + _groundRaycastOffset, transform.position + _groundRaycastOffset + Vector3.down * _groundRaycastLength);
         Gizmos.DrawLine(transform.position - _groundRaycastOffset, transform.position - _groundRaycastOffset + Vector3.down * _groundRaycastLength);
+        Gizmos.DrawLine(transform.position, Camera.main.ScreenToWorldPoint(Input.mousePosition));
     }
 
     private void ApplyAirLinearDrag()
@@ -112,20 +142,30 @@ public class MovementScript : MonoBehaviour
             _rb.gravityScale = 1f;
         }
     }
+    IEnumerator KnockbackStunTime(float cooldown)
+    {
+        _isKnockback = true;
+        
+        yield return new WaitForSeconds(cooldown);
+        _isKnockback = false;
+        
+    }
 
     // Update is called once per frame
     void Update()
     {
         _horizontalDirection = GetInput().x;
         if (_canJump) Jump();
-
+        if (_canKnockback) ShootGun();
+        if (Input.GetMouseButton(1)) _bullet = 1;
+        Debug.Log(_isKnockback);
 
     }
 
     private void FixedUpdate()
     {
         CheckCollisions();
-        MoveCharacter();
+        if (!_isKnockback) MoveCharacter();
         if (_onGround)
         {
             _extraJumpsValue = _extraJumps;
@@ -135,6 +175,7 @@ public class MovementScript : MonoBehaviour
         {
             ApplyAirLinearDrag();
         }
+       
         FallMultiplier();
     }
 
